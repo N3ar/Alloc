@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "alloc.h"
 
-#define NUM_INTS 5000
+#define NUM_INTS 10
 
 int main() {
     int i;

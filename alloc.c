@@ -46,7 +46,7 @@ void removeExtra(meta * current, int size) {
 	extra->size = (int)(current->size - size - sizeof(meta));
 	extra->next = current->next;
 	extra->last = current;
-	if (current->next != NULL) current->next->last = extra;
+	if (current->next != NULL) current->next = extra;
 
 	/* adjust header being trimmed */
 	current->next = extra;
@@ -61,12 +61,16 @@ int alloc_init(void * memarea, int size) {
 
 	/* declare variable & set address to memarea */
 	meta * start = (void *)memarea;
+
 	start->size = (size - sizeof(meta));
 	start->available = 1;
 	return 0;
 }
 
 void * alloc_get(void * memarea, int size) {
+	long int offset_remainder = (long int)memarea % 8;
+	memarea += 8 - offset_remainder;
+
 	/* align the address blocks to 8 bytes */
 	if (size % 8 != 0) {
 		int remainder = size % 8;
@@ -91,6 +95,8 @@ void * alloc_get(void * memarea, int size) {
 		removeExtra(current, size);
 	}
 
+	//if ((void*)current != (void*)memarea) current->last = prev;
+
 	/* set meta tag to unavailable */
 	current->available = 0;
 	return ((void *)current + sizeof(meta));
@@ -103,8 +109,8 @@ void alloc_release(void * memarea, void * mem) {
 	/* initialize variable */
 	meta * released;
 	
-	/* set the header state to available */
 	released = (meta *)((void*)mem - sizeof(meta));
+	/* set the header state to available */
 	released->available = 1;
 
 	/* check surrounding blocks to see if they are free and merge */
@@ -116,7 +122,6 @@ void alloc_release(void * memarea, void * mem) {
 		released->last->size = released->size + sizeof(meta)
 						+ released->last->size;
 		released->last->next = released->next;
-		
 	}
 	/* check next block */
 	if (released->next != NULL && released->next->available
